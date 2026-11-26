@@ -1,0 +1,77 @@
+name: Deploy
+
+# Never on pull_request: a deploy needs the production secrets.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# Queue, never cancel: a cancelled deploy can stop between the code upload and the secret upload.
+concurrency:
+  group: deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    # workflow_dispatch can target any branch or tag; only main deploys.
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Check secrets
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          SLACK_SIGNING_SECRET: ${{ secrets.SLACK_SIGNING_SECRET }}
+          SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
+          CHANNEL_MAP: ${{ secrets.CHANNEL_MAP }}
+          RELAY_URLS: ${{ secrets.RELAY_URLS }}
+          RELAY_SECRETS: ${{ secrets.RELAY_SECRETS }}
+          BRIDGE_TOKEN: ${{ secrets.BRIDGE_TOKEN }}
+        run: bash scripts/check-secrets.sh
+
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version-file: .bun-version
+
+      - run: bun install --frozen-lockfile
+
+      # Deploys first (the first run creates the Worker), then uploads every Worker secret in one version.
+      # The secrets JSON is built by jq from env and piped on stdin, so no value is echoed or written to disk.
+      - name: Deploy and upload Worker secrets
+        id: deploy
+        uses: cloudflare/wrangler-action@953926a2e2182532811c01a25e53647d93bf07c0 # v4.1.3
+        env:
+          SLACK_SIGNING_SECRET: ${{ secrets.SLACK_SIGNING_SECRET }}
+          SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
+          CHANNEL_MAP: ${{ secrets.CHANNEL_MAP }}
+          RELAY_URLS: ${{ secrets.RELAY_URLS }}
+          RELAY_SECRETS: ${{ secrets.RELAY_SECRETS }}
+          BRIDGE_TOKEN: ${{ secrets.BRIDGE_TOKEN }}
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          wranglerVersion: '4.168.0'
+          command: deploy
+          postCommands: >-
+            jq -n
+            --arg SLACK_SIGNING_SECRET "$SLACK_SIGNING_SECRET"
+            --arg SLACK_BOT_TOKEN "$SLACK_BOT_TOKEN"
+            --arg CHANNEL_MAP "$CHANNEL_MAP"
+            --arg RELAY_URLS "$RELAY_URLS"
+            --arg RELAY_SECRETS "$RELAY_SECRETS"
+            --arg BRIDGE_TOKEN "$BRIDGE_TOKEN"
+            '$ARGS.named'
+            | bunx wrangler secret bulk
+
+      - name: Check /health
+        env:
+          DEPLOYMENT_URL: ${{ steps.deploy.outputs.deployment-url }}
+        run: bash scripts/check-health.sh "$DEPLOYMENT_URL"

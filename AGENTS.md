@@ -5,18 +5,19 @@ How to work in this repo and where to find things. The linked documents are cano
 ## What this repo is
 
 A Slack app and a Cloudflare Worker (TypeScript) that make the Crucible workstreams multiplayer. The Worker verifies
-Slack request signatures, drops repeated events by `event_id` (KV), routes each message to the Root, Forge, Ember or
-Other workstream's relay webhook, and acks in the Slack thread.
+Slack request signatures, drops repeated messages by their message record key `msg:<UTC date of ts>:<channel>:<ts>`
+(KV), routes each message to the Root, Forge, Ember or Other workstream's relay webhook, and acks in the Slack thread.
 
-The repo is being set up. The design comes in spec `0001` under `specs/`; the Worker code, CI and the deploy workflow
-come after it. Until then there is no code to build or test.
+Layout: `src/domain/` (schemas and pure logic, no I/O), `src/application/` (handlers), `src/infrastructure/` (router,
+config loading, KV, Slack and relay clients, the `RelayGate` Durable Object, logging), `src/index.ts` (Worker
+entry). Tests are in `test/`; `wrangler.jsonc` declares the bindings. Setup steps are in [`README.md`](README.md).
 
 ## Where to find information
 
 | Need                                            | Read                                                                                                            |
 | ----------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
 | PR checks, commit style, secrets, deploy        | [`.factory/loop-contract.md`](.factory/loop-contract.md)                                                        |
-| Bridge design, envelope, routing, acceptance    | `specs/` (spec `0001`, added by the next PR)                                                                    |
+| Bridge design, envelope, routing, acceptance    | [`specs/0001-slack-bridge.md`](specs/0001-slack-bridge.md)                                                      |
 | Org context, delivery loop, approval boundaries | `crucibledx/hq` `AGENTS.md`                                                                                     |
 | How the workstreams use the bridge              | `crucibledx/hq` `docs/workstream.md`                                                                            |
 | Org engineering standards                       | `engineering-standards` skill (`crucibledx/factory-loop` `plugins/crucible-loop/skills/engineering-standards/`) |
