@@ -22,6 +22,15 @@ usage cannot be attributed to the person who asked.
 The bridge delivers every human message in the bridged channels, top-level or in a thread, to the workstream that owns
 the channel or claimed the thread, without polling, and records who asked so usage per requester stays accurate.
 
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="https://github.com/crucibledx/assets/raw/main/factory-loop/diagrams/dark/multiplayer-slack.svg">
+  <img alt="Multiplayer Slack: messages from every Slack user go through the Slack bridge to the Root, Forge, Ember and Other workstreams, traced by Ember" src="https://github.com/crucibledx/assets/raw/main/factory-loop/diagrams/light/multiplayer-slack.svg">
+</picture>
+
+The org-level picture above shows where the bridge sits. The Worker flow under Design is the bridge's own order of
+steps; where the two differ (the ack comes after the relay accepts, and dedupe uses the message record), the Design
+section applies.
+
 ## Complete, don't compete
 
 - Slack's Events API and Web API carry the messages; Factory webhook automations ("relays") wake the workstreams. The
@@ -71,6 +80,11 @@ different answer changes the matching lines only.
 ## Design
 
 ### Overview
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="https://github.com/crucibledx/assets/raw/main/slack-bridge/diagrams/dark/worker-flow.svg">
+  <img alt="Slack bridge Worker flow: verify, filter, dedupe, route and record before the 200; then reserve from the relay gate, POST to the workstream relay with retries, ack on 2xx, or hold as pending for the cron and give up with a notice and an alert; workstreams call /claim, /reserve and /ledger" src="https://github.com/crucibledx/assets/raw/main/slack-bridge/diagrams/light/worker-flow.svg">
+</picture>
 
 ```
 Slack (message.channels, message.groups)
