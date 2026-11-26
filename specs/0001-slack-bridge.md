@@ -181,15 +181,18 @@ A pure function `route(message, channelMap, claimedWs, connected, botUserId) →
 The hourly budget (D8) lives in `RelayGate`, a SQLite-backed Durable Object with one instance per workstream
 (`idFromName(ws)`). A Durable Object handles one call at a time, so `reserve(now)` is atomic: if fewer than 50
 reservations exist for the current UTC hour it records one and returns `{ok:true}`, else `{ok:false, retry_at}` (the
-next hour). Factory's run limit resets at the top of each hour, so a clock-hour count matches it. Rows for past hours
-are deleted on the next reservation.
+next hour). Factory's run limit resets at the top of each hour, and it counts a delivery by the hour it arrives. To
+keep every arrival in the same hour as its grant, a grant is valid for 60 seconds (the sender delivers at once and
+re-reserves otherwise), and `reserve` refuses calls in the last 60 seconds of an hour with `retry_at` 5 seconds after
+the next hour. Arrivals per hour then never exceed 50, even around midnight. Rows for past hours are deleted on the
+next reservation.
 
-- The bridge reserves before every send, from the request or the cron. A refusal, or a failed or timed-out (2 s) gate
-  call, holds the envelope (fail closed).
+- The bridge reserves before every send, from the request or the cron, and delivers within the grant's 60 seconds.
+  A refusal, or a failed or timed-out (2 s) gate call, holds the envelope (fail closed).
 - Root reserves before each delivery it makes to a project relay: `POST /reserve`, `Authorization: Bearer
   <BRIDGE_TOKEN>`, body `{"ws":"forge"}`. 200 `{"ok":true}`; 429 `{"ok":false,"retry_at":"<ISO>"}`; 401 bad token;
-  400 invalid or unconnected `ws`; 405 other methods; 503 invalid configuration or gate unavailable. On anything but
-  200, Root keeps the delivery in its own pending list and retries on its next tick (hq#18).
+  400 invalid or unconnected `ws`; 405 other methods; 503 invalid configuration or gate unavailable. On a 200, Root delivers at once;
+  on anything else, it keeps the delivery in its own pending list and retries on its next tick (hq#18).
 
 ### Relay delivery and envelope
 
@@ -227,8 +230,10 @@ Timing inside `waitUntil`: each relay attempt times out after 5 s and each Slack
 after 2 s and 6 s, but only while the next attempt can finish within 20 s of the response; otherwise the envelope goes
 to pending at once. So the pending write and the D2 notice always happen before Cloudflare ends `waitUntil` work.
 
-Hourly budget (D8): a send the relay gate refuses goes to pending with `not_before` = `retry_at`, and the hold notice
-`<Ws> is at its hourly limit; this will be sent after <HH>:00 UTC.` is posted instead of the D2 "retrying" notice.
+Hourly budget (D8): a send the relay gate refuses goes to pending with `not_before` = `retry_at` and the hold notice
+`<Ws> is at its hourly limit; this will be sent after <HH>:00 UTC.`. A failed or timed-out gate call goes to pending
+with `not_before` 10 minutes out (the next cron run) and the ordinary D2 "retrying" notice: the workstream is not at
+its limit, the gate is down.
 
 Pending: key `pending:<channel>:<ts>`, value the envelope, `attempts`, `not_before` and `deadline` (1 hour after the
 entry was first stored, whatever the reason: failure or budget hold), TTL 24 hours as a backstop only. A cron trigger
@@ -238,7 +243,9 @@ expired entries first, then the oldest message first:
 - past `deadline`: the D2 give-up notice is posted and the entry deleted, even if it never got a budget reservation;
 - target workstream no longer connected: re-routed by channel with the "not connected" note;
 - `not_before` in the future: skipped;
-- otherwise: reserve, retry once, and on 2xx ack and delete; a refusal or failure keeps it until its `deadline`.
+- otherwise: reserve, retry once, and on 2xx ack and delete. A permanent response (401, 404, 413, other 4xx) gives
+  up immediately with the notice, exactly as in the request path. A retryable failure (5xx, network, timeout, 429),
+  a refusal or a gate outage keeps the entry until its `deadline`.
 
 Alert: any give-up, in the request or the cron, posts one top-level message in the first `CHANNEL_MAP` channel mapped
 to `root`, at most one per workstream per hour (key `alerted:<ws>:<UTC hour>`):
@@ -446,8 +453,8 @@ the check is the behavior.
 | AC-27 | The relay body has exactly the 9 keys in order, `source` first, `thread_ts` = `ts` for top-level, text verbatim; it matches `"source"\s*:\s*"crucible-(root\|bridge)"`; text containing `"source":"crucible-root"` or quotes cannot change `source` or break the JSON; text over 16,000 characters ends with the truncation marker | test | `test/domain/envelope.test.ts` |
 | AC-28 | The request goes only to that workstream's URL with its `X-Webhook-Secret` | test | `test/relay.test.ts` with fake fetch |
 | AC-29 | 5xx, network error and timeout are retried after 2 s and 6 s within the 20 s deadline; 429 goes to pending without retry; 401, 404 and 413 are not retried and give up with the alert; a relay that hangs on every attempt still leads to a pending write and the D2 notice before the deadline | test | `test/relay.test.ts` with fake fetch and clock |
-| AC-30 | `RelayGate` grants exactly 50 reservations per workstream per UTC hour, also for 60 concurrent `reserve` calls, and resets at the next hour; request and cron sends both reserve; a refused or failed reservation holds the envelope with `not_before` = `retry_at` and the hold notice | test | `test/relay-gate.test.ts` (the class with in-memory storage, `Promise.all` of 60 calls), `test/budget.test.ts` |
-| AC-31 | The cron handles at most 8 pending entries, expired first, then oldest; an entry past its 1-hour `deadline` gets the give-up notice and is deleted, also one that was only ever budget-held; an entry for a workstream no longer connected is re-routed by channel; future `not_before` is skipped; 2xx acks and deletes; any give-up, in the request or the cron, posts the alert in the first channel mapped to `root`, at most once per workstream per hour; pending TTL is 24 hours | test | `test/pending.test.ts` |
+| AC-30 | `RelayGate` grants exactly 50 reservations per workstream per UTC hour, also for 60 concurrent `reserve` calls; calls in the last 60 seconds of an hour are refused with `retry_at` just after the next hour, so no grant crosses the boundary; a refusal holds the envelope with `not_before` = `retry_at` and the hold notice | test | `test/relay-gate.test.ts` (the class with in-memory storage, `Promise.all` of 60 calls, boundary cases), `test/budget.test.ts` |
+| AC-31 | The cron handles at most 8 pending entries, expired first, then oldest; an entry past its 1-hour `deadline` gets the give-up notice and is deleted, also one that was only ever budget-held; an entry for a workstream no longer connected is re-routed by channel; future `not_before` is skipped; 2xx acks and deletes; a retry returning 401 or another permanent response gives up at once with the notice; any give-up, in the request or the cron, posts the alert in the first channel mapped to `root`, at most once per workstream per hour; pending TTL is 24 hours | test | `test/pending.test.ts` |
 | AC-32 | The D1 ack, the "not connected" note, the D2 notices, the hold notice and the alert use the exact strings in this spec; the D1 ack and the note are posted only after a 2xx, the D2 "retrying" notice on the first pending write, the give-up notice on give-up; Slack API calls time out after 3 s; a failing Slack call is logged, not retried, and does not affect delivery | test | `test/ack.test.ts` |
 | AC-33 | `user_name` falls back from display name to real name to user id when `users.info` fails or times out | test | `test/events.test.ts` |
 | AC-34 | Each decision logs one JSON line with the listed fields; logs never contain message text, user names, tokens, secrets or relay URLs | test | Test captures logs across the AC-13 to AC-33 scenarios and greps for the fixture values |
@@ -458,5 +465,5 @@ the check is the behavior.
 | AC-39 | End to end: a second Slack user posts a request in `#crucible-work`, a workstream claims the thread, the user replies there, the reply reaches that workstream's session as `kind: reply` without polling, the PR and Slack replies name the user, and the end-of-day summary shows the user's usage | e2e | Live after #5: thread link, relay delivery, PR, summary line, ids redacted, comment on #5 |
 | AC-40 | hq docs describe the receivers for `kind: top` and `kind: reply` from `crucible-bridge`, `/claim` calls including the ready thread, the credentials file, ledger mirroring and its cutover, the D8 relay limits and Root reserving through `POST /reserve` before each delivery to a project, Root passing replies in just-handed-over threads as a `note`, Root's `channel`/`ts` dedupe across both sources, and the retired instant reply; no "thread replies are not forwarded" limit remains | doc | `crucibledx/hq` `docs/workstream.md` and `docs/workstreams/*.md` |
 | AC-41 | `.factory/loop-contract.md` lists the install command and the CI checks, and `AGENTS.md` describes dedupe by the message key instead of `event_id` | doc | Both files in the #3 PR |
-| AC-42 | With a fake KV whose `get` or `list` throws: a failed dedupe read still delivers, a failed thread-map read routes by channel, a failed or slow relay-gate call holds the envelope as pending, and a failed cron list skips the run; each logs `kv_limit` | test | `test/kv-failure.test.ts` |
+| AC-42 | With a fake KV whose `get` or `list` throws: a failed dedupe read still delivers, a failed thread-map read routes by channel, a failed or slow relay-gate call holds the envelope as pending with `not_before` 10 minutes out and the D2 "retrying" notice, not the hold notice, and a failed cron list skips the run; each logs `kv_limit` | test | `test/kv-failure.test.ts` |
 | AC-43 | `POST /reserve` with the token returns 200 while the workstream has budget and 429 with `retry_at` once 50 are reserved, sharing the count with the bridge's own sends; no or wrong token → 401; invalid or unconnected `ws` → 400; GET → 405; invalid config → 503 | test | `test/reserve.test.ts` |
