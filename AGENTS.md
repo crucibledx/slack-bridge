@@ -5,8 +5,9 @@ How to work in this repo and where to find things. The linked documents are cano
 ## What this repo is
 
 A Slack app and a Cloudflare Worker (TypeScript) that make the Crucible workstreams multiplayer. The Worker verifies
-Slack request signatures, drops repeated events by `event_id` (KV), routes each message to the Root, Forge, Ember or
-Other workstream's relay webhook, and acks in the Slack thread.
+Slack request signatures, skips bot messages and repeats (a message already recorded under `channel:ts` in KV), routes
+each message to the Root, Forge, Ember or Other workstream's relay webhook, and acks in the Slack thread only after
+that relay accepts the message.
 
 The repo is being set up. The design comes in spec `0001` under `specs/`; the Worker code, CI and the deploy workflow
 come after it. Until then there is no code to build or test.
@@ -16,7 +17,7 @@ come after it. Until then there is no code to build or test.
 | Need                                            | Read                                                                                                            |
 | ----------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
 | PR checks, commit style, secrets, deploy        | [`.factory/loop-contract.md`](.factory/loop-contract.md)                                                        |
-| Bridge design, envelope, routing, acceptance    | `specs/` (spec `0001`, added by the next PR)                                                                    |
+| Bridge design, envelope, routing, acceptance    | [`specs/0001-slack-bridge.md`](specs/0001-slack-bridge.md)                                                      |
 | Org context, delivery loop, approval boundaries | `crucibledx/hq` `AGENTS.md`                                                                                     |
 | How the workstreams use the bridge              | `crucibledx/hq` `docs/workstream.md`                                                                            |
 | Org engineering standards                       | `engineering-standards` skill (`crucibledx/factory-loop` `plugins/crucible-loop/skills/engineering-standards/`) |
