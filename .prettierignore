@@ -1,0 +1,7 @@
+bun.lock
+dist/
+node_modules/
+.wrangler/
+specs/
+# Installed and updated by crucibledx/factory-loop.
+.github/workflows/crucible-loop.yml
