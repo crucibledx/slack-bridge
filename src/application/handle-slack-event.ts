@@ -23,6 +23,7 @@ const decoder = new TextDecoder()
 
 export async function handleSlackEvent(request: SignedRequest, deps: SlackEventDeps): Promise<SlackEventResponse> {
   const {config, log} = deps
+  // Without a valid config there may be no signing secret, so unsigned requests also log config_invalid until it is fixed.
   if (!config.ok) {
     log({outcome: OUTCOMES.CONFIG_INVALID})
     return OK

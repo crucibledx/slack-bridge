@@ -99,8 +99,15 @@ describe('POST /slack/events', () => {
       ['no user', {user: undefined}, 'bot'],
       ["the bridge's own bot user", {user: 'U000TESTBOT'}, 'bot'],
       ['subtype channel_join', {subtype: 'channel_join'}, 'subtype'],
-      ['subtype message_changed', {subtype: 'message_changed'}, 'subtype'],
-      ['subtype message_deleted', {subtype: 'message_deleted'}, 'subtype'],
+      ['subtype channel_topic', {subtype: 'channel_topic'}, 'subtype'],
+      ['subtype me_message', {subtype: 'me_message'}, 'subtype'],
+      // Edits and deletes carry no top-level user, so the bot check, which comes first, drops them.
+      [
+        'an edit as Slack sends it',
+        {subtype: 'message_changed', user: undefined, message: {user: 'U000TEST', text: 'fake edited text'}},
+        'bot',
+      ],
+      ['a delete as Slack sends it', {subtype: 'message_deleted', user: undefined, deleted_ts: TS}, 'bot'],
       ['a channel not in CHANNEL_MAP', {channel: 'C000TESTOTHER'}, 'channel'],
       ['an external user', {user_team: 'T000TESTOTHER'}, 'external'],
     ]
@@ -170,6 +177,7 @@ describe('POST /slack/events', () => {
       ['an event_callback without team_id', messagePayload({}, {team_id: undefined})],
       ['a message without ts', messagePayload({ts: undefined})],
       ['a message with a malformed ts', messagePayload({ts: 'fake-ts'})],
+      ['a message with a ts past the year 9999', messagePayload({ts: '999999999999.000100'})],
       ['a message without channel', messagePayload({channel: undefined})],
       ['a message with a malformed thread_ts', messagePayload({thread_ts: 17640924})],
     ]

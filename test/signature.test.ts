@@ -87,4 +87,13 @@ describe('POST /slack/events signature (AC-11)', () => {
   test.each(rejected)('%s → 401 with no KV or network call', async (_name, build) => {
     await expectRejected(await build())
   })
+
+  test('with invalid config an unsigned request gets 200 and config_invalid, since there is no secret to verify with', async () => {
+    const kv = fakeKv()
+    const response = await postEvent(request({}), fakeEnv({SLACK_SIGNING_SECRET: undefined}, {BRIDGE_KV: kv.kv}))
+    expect(response.status).toBe(200)
+    expect(kv.callCount()).toBe(0)
+    expect(fetchSpy).not.toHaveBeenCalled()
+    expect(logSpy.mock.calls.map(([line]) => JSON.parse(String(line)))).toEqual([{outcome: 'config_invalid'}])
+  })
 })

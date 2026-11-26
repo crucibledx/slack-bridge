@@ -3,8 +3,8 @@ import {z} from 'zod'
 import type {Workstream} from './workstreams'
 
 const slackId = z.string().regex(/^[A-Z][A-Z0-9]{1,63}$/)
-// Bounded so the key and metadata stay small and the seconds always make a valid Date.
-const slackTs = z.string().regex(/^\d{1,12}\.\d{1,9}$/)
+// At most 10 digits of seconds (up to the year 2286), so the UTC date is always a 4-digit-year ISO date.
+const slackTs = z.string().regex(/^\d{1,10}\.\d{1,9}$/)
 
 const payloadHead = z.looseObject({type: z.string()})
 const urlVerification = z.object({type: z.literal('url_verification'), challenge: z.string().min(1).max(1024)})
@@ -89,7 +89,8 @@ export type IgnoreReason = (typeof IGNORE_REASONS)[keyof typeof IGNORE_REASONS]
 
 const FORWARDED_SUBTYPES = new Set(['file_share', 'thread_broadcast'])
 
-export type FilterResult = {ok: true; message: HumanMessage} | {ok: false; reason: IgnoreReason}
+type FilterReason = (typeof IGNORE_REASONS)['BOT' | 'SUBTYPE' | 'CHANNEL' | 'EXTERNAL']
+export type FilterResult = {ok: true; message: HumanMessage} | {ok: false; reason: FilterReason}
 
 /** Drops bot posts, edits and joins, unmapped channels and external users, in the spec's order. */
 export function filterMessage(payload: MessagePayload, channelMap: Record<string, Workstream>): FilterResult {
