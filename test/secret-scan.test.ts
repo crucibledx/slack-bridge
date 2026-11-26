@@ -1,4 +1,4 @@
-import {readFileSync} from 'node:fs'
+import {readFileSync, statSync} from 'node:fs'
 import {describe, expect, test} from 'bun:test'
 
 import {findSecrets} from './support/secret-scan'
@@ -27,7 +27,11 @@ describe('secret scanner', () => {
 test('no secret, Slack id or relay URL in tracked files', () => {
   const listed = Bun.spawnSync(['git', 'ls-files', '-z', '--cached', '--others', '--exclude-standard'])
   expect(listed.exitCode).toBe(0)
-  const files = listed.stdout.toString().split('\0').filter(Boolean)
+  // Nested checkouts (worktrees, submodules) are listed as directories; only regular files are scanned.
+  const files = listed.stdout
+    .toString()
+    .split('\0')
+    .filter((file) => file && statSync(file).isFile())
   expect(files.length).toBeGreaterThan(0)
   const found = files.flatMap((file) => findSecrets(readFileSync(file, 'utf8')).map((match) => `${file}: ${match}`))
   expect(found).toEqual([])

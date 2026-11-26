@@ -1,7 +1,15 @@
 import type {Workstream} from '@domain/workstreams'
 
-export type Outcome =
-  'recorded' | 'delivered' | `ignored:${string}` | 'pending' | 'failed' | 'kv_limit' | 'config_invalid' | 'bad_payload'
+export const OUTCOMES = {
+  RECORDED: 'recorded',
+  DELIVERED: 'delivered',
+  PENDING: 'pending',
+  FAILED: 'failed',
+  KV_LIMIT: 'kv_limit',
+  CONFIG_INVALID: 'config_invalid',
+  BAD_PAYLOAD: 'bad_payload',
+} as const
+export type Outcome = (typeof OUTCOMES)[keyof typeof OUTCOMES] | `ignored:${string}`
 
 /** The only fields a log line may carry: never message text, user ids or names, tokens, secrets or relay URLs. */
 export type Decision = {

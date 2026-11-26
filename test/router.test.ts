@@ -17,6 +17,7 @@ describe('router', () => {
     const response = await call('/health', method)
     expect(response.status).toBe(405)
     expect(response.headers.get('Allow')).toBe('GET')
+    expect(await response.json()).toEqual({ok: false, error: 'method_not_allowed'})
   })
 
   test('the query string does not change the route', async () => {

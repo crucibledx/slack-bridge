@@ -3,7 +3,11 @@
 # `error` field only (a secret name, never a value). Retries because a new version takes a few seconds to serve.
 set -euo pipefail
 
-url="${1:?usage: check-health.sh <deployment-url>}"
+url="${1:-}"
+if [ -z "$url" ]; then
+  echo "No deployment URL to check. If this ran after a deploy, check that the Cloudflare account has a workers.dev subdomain." >&2
+  exit 1
+fi
 attempts="${HEALTH_CHECK_ATTEMPTS:-6}"
 delay="${HEALTH_CHECK_DELAY:-5}"
 
