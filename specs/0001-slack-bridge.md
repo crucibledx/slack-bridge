@@ -73,7 +73,7 @@ different answer changes the matching lines only.
 | D1 | Ack form | Top-level message: one thread reply `Sent to <Ws>.` once the relay accepts it. Thread reply: an `eyes` reaction once accepted (scope `reactions:write`). Root also replies `Routed to <Ws>: <issue>` today, so a routed request gets two bot replies | (a) A thread message for every reply too; (b) a reaction for top-level messages as well, leaving all text to the workstreams |
 | D2 | Delivery failure | Thread reply `Could not reach <Ws> yet, retrying.`; retries for 1 hour; then thread reply `Could not deliver this to <Ws>. The maintainers have been told.` and one alert message in the Root channel | Retry silently; only the alert |
 | D3 | Bridged channels | `#crucible-work`, mapped to `root`. In a bridged channel, a message with no directive and no claimed thread goes to the channel's workstream (Root). Messages in channels that are not mapped are ignored. Channels change by editing the `CHANNEL_MAP` secret and re-running the deploy | Project channels for Forge, Ember and Other from day one |
-| D4 | App and bot name | `Crucible` (`@Crucible ember: ...`) | Another name, set in `slack/manifest.yaml` |
+| D4 | App and bot name | `Tundish` (`@Tundish ember: ...`) | Another name, set in `slack/manifest.yaml` |
 | D5 | Usage counting | The bridge is the only source of `route` ledger lines: one per top-level human message in a bridged channel, so "runs" include thanks and questions Root answers itself, and the line carries no issue link (the `agent` and `pr` lines keep theirs). Thread replies are `reply` lines, which the report ignores | Root keeps writing `route` lines, with the issue link, only for messages that became issues; the bridge's top-level lines use event `message`, which the report ignores |
 | D6 | Who may use it | Channel membership decides who can drive the workstreams; bridged channels should be private and invite-only. Messages from external (Slack Connect) users are ignored | An `ALLOWED_USERS` secret (user ids) checked on every message |
 | D7 | Hosting | The default `workers.dev` URL; no DNS change | A custom domain on `crucibledx.dev` |
@@ -165,7 +165,7 @@ A pure function `route(message, channelMap, claimedWs, connected, botUserId) →
 - **Directives**, on the text with leading whitespace removed, case-insensitive:
   - prefix (`via: prefix`): `^(root|forge|ember|other)\s*:`;
   - mention (`via: mention`): `^<@BOT(\|[^>]*)?>\s*(root|forge|ember|other)\s*[:,]`, `BOT` being the bot user id.
-    The separator is required, so `@Crucible other than that, ...` is plain text.
+    The separator is required, so `@Tundish other than that, ...` is plain text.
 - Precedence, first match wins: (1) a directive naming a connected workstream; (2) for a reply, the thread map entry
   for `(channel, thread_ts)` if that workstream is connected, `via: thread`; (3) the channel's `CHANNEL_MAP` entry,
   `via: channel` (always connected, see Configuration).

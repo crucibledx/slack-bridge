@@ -14,9 +14,9 @@ type Manifest = {
 
 const manifest = Bun.YAML.parse(readFileSync('slack/manifest.yaml', 'utf8')) as Manifest
 
-test('the app and bot are named Crucible (D4)', () => {
-  expect(manifest.display_information.name).toBe('Crucible')
-  expect(manifest.features.bot_user.display_name).toBe('Crucible')
+test('the app and bot are named Tundish (D4)', () => {
+  expect(manifest.display_information.name).toBe('Tundish')
+  expect(manifest.features.bot_user.display_name).toBe('Tundish')
 })
 
 test('exactly the bot scopes in the spec, and no user scopes', () => {

@@ -1,11 +1,11 @@
 # Slack app for the bridge. Create it at https://api.slack.com/apps > Create New App > From a manifest.
 # Replace <subdomain> with the Cloudflare account's workers.dev subdomain.
 display_information:
-  name: Crucible
+  name: Tundish
   description: Sends messages in the bridged channels to the Crucible workstreams.
 features:
   bot_user:
-    display_name: Crucible
+    display_name: Tundish
     always_online: false
 oauth_config:
   scopes:
