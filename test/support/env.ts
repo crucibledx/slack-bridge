@@ -10,11 +10,14 @@ export const FAKE_SECRETS: Record<SecretName, string> = {
   BRIDGE_TOKEN: 'fake-bridge-token-0123456789abcdef',
 }
 
-export function fakeEnv(overrides: Partial<Record<SecretName, string | undefined>> = {}): Env {
+export function fakeEnv(
+  overrides: Partial<Record<SecretName, string | undefined>> = {},
+  bindings: Partial<Pick<Env, 'BRIDGE_KV'>> = {},
+): Env {
   return {
     ...FAKE_SECRETS,
     ...overrides,
-    BRIDGE_KV: {} as KVNamespace,
+    BRIDGE_KV: bindings.BRIDGE_KV ?? ({} as KVNamespace),
     RELAY_GATE: {} as DurableObjectNamespace,
   }
 }
