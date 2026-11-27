@@ -5,3 +5,5 @@ node_modules/
 specs/
 # Installed and updated by crucibledx/factory-loop.
 .github/workflows/crucible-loop.yml
+# factory-loop's checkout of itself, made by loop-ci's toolchain setup.
+.factory-loop/

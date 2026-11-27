@@ -1,5 +1,5 @@
 {
-  "name": "slack-bridge",
+  "name": "tundish",
   "version": "0.0.0",
   "private": true,
   "description": "Slack bridge for the Crucible workstreams: a Cloudflare Worker",

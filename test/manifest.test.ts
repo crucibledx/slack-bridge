@@ -14,9 +14,9 @@ type Manifest = {
 
 const manifest = Bun.YAML.parse(readFileSync('slack/manifest.yaml', 'utf8')) as Manifest
 
-test('the app and bot are named Crucible (D4)', () => {
-  expect(manifest.display_information.name).toBe('Crucible')
-  expect(manifest.features.bot_user.display_name).toBe('Crucible')
+test('the app and bot are named Tundish (D4)', () => {
+  expect(manifest.display_information.name).toBe('Tundish')
+  expect(manifest.features.bot_user.display_name).toBe('Tundish')
 })
 
 test('exactly the bot scopes in the spec, and no user scopes', () => {
@@ -30,7 +30,7 @@ test('exactly the bot events in the spec, at the workers.dev request URL', () =>
   const events = manifest.settings.event_subscriptions
   expect([...events.bot_events].sort()).toEqual(['message.channels', 'message.groups'])
   expect(events.user_events).toBeUndefined()
-  expect(events.request_url).toBe('https://slack-bridge.<subdomain>.workers.dev/slack/events')
+  expect(events.request_url).toBe('https://tundish.<subdomain>.workers.dev/slack/events')
 })
 
 test('socket mode, interactivity and slash commands are off', () => {
