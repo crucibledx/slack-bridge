@@ -1,16 +1,19 @@
 ---
 id: "0001"
-title: "Slack bridge"
+title: "Tundish (Slack bridge)"
 status: approved
 scope: project
-target_repos: [slack-bridge]
+target_repos: [tundish]
 assets: none
 size: mission
-idea_issue: "crucibledx/slack-bridge#2"
+idea_issue: "crucibledx/tundish#2"
 created: 2026-11-25
 ---
 
-# 0001: Slack bridge
+# 0001: Tundish (Slack bridge)
+
+> Renamed 2026-11-27 (tundish#16): the repo and the Worker were `slack-bridge`, now `tundish`. The spec keeps its
+> file name and history. The relay payload's `source` stays `crucible-bridge`; Root's relay filter matches it.
 
 ## Problem
 
@@ -345,7 +348,7 @@ ignores events it does not know. Mirrored `/ledger` lines keep it working unchan
 - Change and rotation: edit the GitHub secret, then run the deploy with `workflow_dispatch`, which re-uploads every
   Worker secret. A new channel also needs the bot invited. A new `BRIDGE_TOKEN` also goes into the workstreams' file.
 
-GitHub Actions secrets Nazar creates in `crucibledx/slack-bridge` (8):
+GitHub Actions secrets Nazar creates in `crucibledx/tundish` (8):
 
 | GitHub secret | Becomes | Where it comes from |
 |---------------|---------|---------------------|
@@ -365,7 +368,7 @@ No secret, real channel id, user id or relay URL is committed or used in fixture
 
 `slack/manifest.yaml`: app and bot name per D4; bot scopes `channels:history`, `groups:history`, `chat:write`,
 `reactions:write` (D1), `users:read`; bot events `message.channels`, `message.groups`; request URL
-`https://slack-bridge.<subdomain>.workers.dev/slack/events` with `<subdomain>` left for Nazar; socket mode,
+`https://tundish.<subdomain>.workers.dev/slack/events` with `<subdomain>` left for Nazar; socket mode,
 interactivity and slash commands off. The README gives the setup order in Rollout steps 1-2.
 
 ## Implementation split
@@ -376,11 +379,11 @@ records). Live rows run after the deploy and are recorded as a comment on the li
 
 | Issue | Scope | Rows |
 |-------|-------|------|
-| slack-bridge#3 Worker skeleton, CI and deploy | Code layout, Configuration, Health and logging, Deploy and secrets, Slack app manifest; the loop contract gains install and checks | AC-1 to AC-9, AC-41 |
-| slack-bridge#4 Slack events endpoint | Events endpoint steps 1-7 without routing or delivery: records have no `ws`, nothing is acked, so the deployed bridge stays silent. Dedupe uses the message record key, which also covers the issue's `event_id` dedupe (Slack retries reuse both). The ack moved to #6 | AC-10 to AC-19 |
+| tundish#3 Worker skeleton, CI and deploy | Code layout, Configuration, Health and logging, Deploy and secrets, Slack app manifest; the loop contract gains install and checks | AC-1 to AC-9, AC-41 |
+| tundish#4 Slack events endpoint | Events endpoint steps 1-7 without routing or delivery: records have no `ws`, nothing is acked, so the deployed bridge stays silent. Dedupe uses the message record key, which also covers the issue's `event_id` dedupe (Slack retries reuse both). The ack moved to #6 | AC-10 to AC-19 |
 | crucibledx/hq#18 Prompts and docs | Receivers, credentials file, claims, attribution and mentions, ledger mirroring and cutover, retiring the instant reply right after the first acked test message, D8 relay limits and Root's `POST /reserve` calls. Merges before #6 | AC-40 |
-| slack-bridge#6 Routing and relay delivery | Routing, Thread map and claims, Relay delivery (envelope, retries, hourly budget, pending, cron, acks), Slack Web API client. Merge preconditions: Rollout step 4, confirmed in the PR body. If it exceeds the size limit, it splits into routing and `/claim` (AC-20 to AC-26, safe to deploy alone: nothing is delivered), then delivery (AC-27 to AC-35, AC-42, AC-43); the merge preconditions apply to the delivery half | AC-20 to AC-35, AC-42, AC-43 |
-| slack-bridge#5 Ledger feed | `GET /ledger`, compatibility with the usage report, Root's mirroring; the end-to-end check (AC-39) is recorded on this issue | AC-36 to AC-39 |
+| tundish#6 Routing and relay delivery | Routing, Thread map and claims, Relay delivery (envelope, retries, hourly budget, pending, cron, acks), Slack Web API client. Merge preconditions: Rollout step 4, confirmed in the PR body. If it exceeds the size limit, it splits into routing and `/claim` (AC-20 to AC-26, safe to deploy alone: nothing is delivered), then delivery (AC-27 to AC-35, AC-42, AC-43); the merge preconditions apply to the delivery half | AC-20 to AC-35, AC-42, AC-43 |
+| tundish#5 Ledger feed | `GET /ledger`, compatibility with the usage report, Root's mirroring; the end-to-end check (AC-39) is recorded on this issue | AC-36 to AC-39 |
 | crucibledx/factory-loop#21 Usage per requester (merged) | No change; kept compatible by AC-38 | — |
 
 ## Rollout

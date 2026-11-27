@@ -1,4 +1,6 @@
-# Slack Bridge: agent guide
+# Tundish: agent guide
+
+Tundish is the renamed slack-bridge (tundish#16).
 
 How to work in this repo and where to find things. The linked documents are canonical; this file does not repeat them.
 

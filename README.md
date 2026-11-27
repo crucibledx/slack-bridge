@@ -1,6 +1,6 @@
-# Slack Bridge
+# Tundish
 
-A Slack app and a Cloudflare Worker that deliver every human message in the bridged Slack channels to the Crucible
+Tundish (the renamed slack-bridge) is a Slack app and a Cloudflare Worker that deliver every human message in the bridged Slack channels to the Crucible
 workstream (Root, Forge, Ember or Other) that owns the channel or claimed the thread. The design and its acceptance
 contract are in [`specs/0001-slack-bridge.md`](specs/0001-slack-bridge.md).
 

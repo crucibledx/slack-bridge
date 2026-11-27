@@ -30,7 +30,7 @@ test('exactly the bot events in the spec, at the workers.dev request URL', () =>
   const events = manifest.settings.event_subscriptions
   expect([...events.bot_events].sort()).toEqual(['message.channels', 'message.groups'])
   expect(events.user_events).toBeUndefined()
-  expect(events.request_url).toBe('https://slack-bridge.<subdomain>.workers.dev/slack/events')
+  expect(events.request_url).toBe('https://tundish.<subdomain>.workers.dev/slack/events')
 })
 
 test('socket mode, interactivity and slash commands are off', () => {
