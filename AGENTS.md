@@ -5,8 +5,9 @@ How to work in this repo and where to find things. The linked documents are cano
 ## What this repo is
 
 A Slack app and a Cloudflare Worker (TypeScript) that make the Crucible workstreams multiplayer. The Worker verifies
-Slack request signatures, drops repeated messages by their message record key `msg:<UTC date of ts>:<channel>:<ts>`
-(KV), routes each message to the Root, Forge, Ember or Other workstream's relay webhook, and acks in the Slack thread.
+Slack request signatures, skips bot messages and repeats (a message already recorded under its message record key
+`msg:<UTC date of ts>:<channel>:<ts>` in KV), routes each message to the Root, Forge, Ember or Other workstream's relay
+webhook, and acks in the Slack thread only after that relay accepts the message.
 
 Layout: `src/domain/` (schemas and pure logic, no I/O), `src/application/` (handlers), `src/infrastructure/` (router,
 config loading, KV, Slack and relay clients, the `RelayGate` Durable Object, logging), `src/index.ts` (Worker

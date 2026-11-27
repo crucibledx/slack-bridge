@@ -27,9 +27,8 @@ the channel or claimed the thread, without polling, and records who asked so usa
   <img alt="Multiplayer Slack: messages from every Slack user go through the Slack bridge to the Root, Forge, Ember and Other workstreams, traced by Ember" src="https://github.com/crucibledx/assets/raw/main/factory-loop/diagrams/light/multiplayer-slack.svg">
 </picture>
 
-The org-level picture above shows where the bridge sits. The Worker flow under Design is the bridge's own order of
-steps; where the two differ (the ack comes after the relay accepts, and dedupe uses the message record), the Design
-section applies.
+The org-level picture above shows where the bridge sits. The Worker flow under Design shows the bridge's own steps in
+detail.
 
 ## Complete, don't compete
 
